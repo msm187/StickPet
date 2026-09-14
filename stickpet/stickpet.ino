@@ -21,6 +21,16 @@
  *
  * BOARD: ESP32S3 Dev Module · OPI PSRAM · 8MB · 8M w/ spiffs · USB CDC on boot
  * LIBRARY: M5Unified (only)
+ *
+ * StickPet - a virtual pet + idle RPG for the M5Stack StickS3
+ * Copyright (C) 2026 deflockohio
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version. It is distributed WITHOUT ANY WARRANTY; see the GNU GPL for details:
+ * <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  * ---------------------------------------------------------------------------
  */
 

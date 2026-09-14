@@ -113,6 +113,11 @@ Set `STICKPET_LOG` to `0` for release builds to compile all of that out.
 
 ## License
 
-[MIT](LICENSE) © 2026 Edward Weber
+[GNU General Public License v3.0](LICENSE) © 2026 deflockohio
+
+Free software: use it, modify it, share it, even sell it. The one condition is
+copyleft — if you distribute it or a modified version (including flashed onto a
+device), you must **make your source available under the GPL too**, so everyone
+keeps the freedom to see and change what's running.
 
 Built for the M5Stack StickS3 with [M5Unified](https://github.com/m5stack/M5Unified).
