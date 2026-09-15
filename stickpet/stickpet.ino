@@ -69,6 +69,7 @@ static const int      RETREAT_ENERGY = 12;    // energy %: pet rests instead of 
 static const float    FIGHT_ENERGY   = 6.0f;  // energy spent per fight
 static const float    ADV_CARE_SCALE  = 0.5f;  // care decays slower while away
 
+static const char* VERSION = "v1.0";
 static const uint8_t SPK_MAG = 8;
 static const uint8_t SPK_VOL = 200;
 
@@ -391,7 +392,7 @@ static void drawBlob(int cx,int cy,uint32_t now,int lvl,bool popping,float pop){
 }
 
 // Three rotating bosses, drawn from primitives, sized to fit y ~40..88.
-static void drawBoss(int cx,int cy,uint32_t now,int type,int lvl,bool popping,float pop){
+static void drawBoss(int cx,int cy,uint32_t now,int type,int lvl,bool popping,float pop,bool label){
   uint16_t col = type==0 ? canvas.color565(225,95,60)     // crab  - red-orange
                : type==1 ? canvas.color565(120,70,160)    // spider- purple
                          : canvas.color565(150,110,70);    // deer  - brown
@@ -435,14 +436,16 @@ static void drawBoss(int cx,int cy,uint32_t now,int type,int lvl,bool popping,fl
     canvas.fillCircle(cx+13,yy-12,2,C_CRIT);   // single glowing eye
   }
 
-  canvas.setTextColor(C_CRIT);canvas.setTextSize(1);
-  char lbl[16]; snprintf(lbl,sizeof(lbl),"%s L%d",nm,lvl);
-  int tw=strlen(lbl)*6; canvas.setCursor(cx-tw/2,cy+22); canvas.print(lbl);
+  if(label){
+    canvas.setTextColor(C_CRIT);canvas.setTextSize(1);
+    char lbl[16]; snprintf(lbl,sizeof(lbl),"%s L%d",nm,lvl);
+    int tw=strlen(lbl)*6; canvas.setCursor(cx-tw/2,cy+22); canvas.print(lbl);
+  }
 }
 
 // dispatch: bosses use their own art, everything else the basic blob
 static void drawFoe(int cx,int cy,uint32_t now,int lvl,bool popping,float pop){
-  if(encBoss) drawBoss(cx,cy,now,encBossType,lvl,popping,pop);
+  if(encBoss) drawBoss(cx,cy,now,encBossType,lvl,popping,pop,true);
   else        drawBlob(cx,cy,now,lvl,popping,pop);
 }
 
@@ -721,6 +724,48 @@ static void logResetReason(){
 #endif
 }
 
+// ------------------------------------------------------------------ splash --
+// Boot title screen: the mascot bounces in, then StickPet + tagline. Runs about
+// 2.4s and is skippable with any button. Also handy as cover art for M5Burner.
+static void drawMascot(int cx,int cy){
+  canvas.fillEllipse(cx-14,cy+18,7,4,C_BODY);
+  canvas.fillEllipse(cx+14,cy+18,7,4,C_BODY);
+  canvas.drawLine(cx,cy-24,cx,cy-32,C_INK);
+  canvas.fillCircle(cx,cy-34,3,C_GOOD);
+  canvas.fillEllipse(cx,cy,26,22,C_BODY);
+  canvas.fillEllipse(cx,cy+3,16,14,C_BELLY);
+  canvas.fillCircle(cx-10,cy-4,6,C_EYE); canvas.fillCircle(cx+10,cy-4,6,C_EYE);
+  canvas.fillCircle(cx-10,cy-4,3,C_INK); canvas.fillCircle(cx+10,cy-4,3,C_INK);
+  canvas.fillCircle(cx-16,cy+5,3,C_CHEEK); canvas.fillCircle(cx+16,cy+5,3,C_CHEEK);
+  canvas.fillArc(cx,cy+7,7,10,20,160,C_INK);
+}
+static void showSplash(){
+  uint32_t t0=millis(); bool jingle=false;
+  while(millis()-t0 < 2600){
+    M5.update();
+    if(M5.BtnA.wasPressed()||M5.BtnB.wasPressed()) break;
+    uint32_t e=millis()-t0, now=millis();
+
+    canvas.fillSprite(C_BG);
+    for(int i=0;i<18;i++){ int sx=(i*43+9)%240, sy=(i*29+5)%135; canvas.drawPixel(sx,sy,C_BG2); }
+
+    // title: STICKPET, centered up top (no version baked into the art)
+    canvas.setTextSize(3); canvas.setTextColor(C_BODY);
+    const char* ti="STICKPET"; int tw=strlen(ti)*18;
+    canvas.setCursor((240-tw)/2,12); canvas.print(ti);
+
+    // crab (left) | pet (center) | deer (right)
+    drawBoss(40, 94, now, 0, 1, false, 0, false);   // crab, no label
+    drawBoss(200,94, now, 2, 1, false, 0, false);   // deer, no label
+    int by = 82 + (int)(sinf(e/220.0f)*3.0f);
+    drawMascot(120, by);
+
+    canvas.pushSprite(0,0);
+    if(!jingle && e>150){ sfxBoot(); jingle=true; }
+    delay(20);
+  }
+}
+
 void setup(){
   auto cfg=M5.config(); cfg.internal_spk=true; cfg.internal_mic=false; M5.begin(cfg);
   M5.Display.setRotation(1); M5.Display.setBrightness(90);
@@ -732,8 +777,8 @@ void setup(){
   Serial.begin(115200); delay(200);
   logResetReason();
   loadState();
-  LOGF("StickPet boot: stage=%d lv=%d hp=%d muted=%d\n",pet.stage,pet.level,(int)pet.health,(int)muted);
-  sfxBoot();
+  LOGF("StickPet %s boot: stage=%d lv=%d hp=%d muted=%d\n",VERSION,pet.stage,pet.level,(int)pet.health,(int)muted);
+  showSplash();
   lastTickMs=millis(); nextBlink=millis()+2000+random(2000);
   view=VIEW_HOME;
 }
