@@ -20,7 +20,7 @@
  *   hold either on the gravestone — hatch a new egg
  *
  * BOARD: ESP32S3 Dev Module · OPI PSRAM · 8MB · 8M w/ spiffs · USB CDC on boot
- * LIBRARY: M5Unified (only)
+ * LIBRARIES: M5Unified + M5PM1 (PMIC driver, for the charge-quietly feature)
  *
  * StickPet - a virtual pet + idle RPG for the M5Stack StickS3
  * Copyright (C) 2026 deflockohio
@@ -37,6 +37,8 @@
 #include <M5Unified.h>
 #include <Preferences.h>
 #include "esp_system.h"
+#include <Wire.h>
+#include <M5PM1.h>   // StickS3 PMIC driver — Library Manager: "M5PM1" (charge-quietly)
 
 // ------------------------------------------------------------------ logging --
 // Serial at 115200. Prints the boot reset reason (a BROWNOUT shows up here) and
@@ -46,6 +48,14 @@
   #define LOGF(...) do{ Serial.printf("[%8lu] ",(unsigned long)millis()); Serial.printf(__VA_ARGS__); }while(0)
 #else
   #define LOGF(...) do{}while(0)
+#endif
+
+// ---------------------------------------------------------- charge quietly --
+// When the Stick is OFF and you plug in USB just to charge, don't auto-boot the
+// game — stay dark and charge. Press the POWER button to turn it on as usual.
+// Set to 0 to restore the stock "power on whenever a cable is plugged in".
+#ifndef CHARGE_QUIETLY
+  #define CHARGE_QUIETLY 1
 #endif
 
 // ------------------------------------------------------------ tuning knobs --
@@ -766,7 +776,53 @@ static void showSplash(){
   }
 }
 
+// --------------------------------------------------------- charge-quietly --
+// The StickS3's M5PM1 PMIC brings the ESP32 up whenever it sees 5V on USB (VIN),
+// the power button, a wake timer, etc. We read *why* we woke before M5.begin()
+// lights the screen or wakes the speaker: if it was the USB cable alone, we shut
+// back down so the Stick charges silently. Any button press boots normally.
+// Runs on the internal I2C bus (SDA 47 / SCL 48, PMIC @ M5PM1_DEFAULT_ADDR).
+#if CHARGE_QUIETLY
+static void chargeQuietlyGuard(){
+#if STICKPET_LOG
+  Serial.begin(115200); delay(120);
+#endif
+  M5PM1 pm1;
+  if(pm1.begin(&Wire, M5PM1_DEFAULT_ADDR, 47, 48, M5PM1_I2C_FREQ_100K) != M5PM1_OK){
+    LOGF("chargeGuard: PM1 begin failed -> booting normally\n");
+    return;                         // can't reach the PMIC: just boot
+  }
+  uint8_t ws = 0;
+  if(pm1.getWakeSource(&ws, M5PM1_CLEAN_ONCE) != M5PM1_OK){
+    LOGF("chargeGuard: wake-source read failed -> booting normally\n");
+    Wire.end(); return;
+  }
+  LOGF("chargeGuard: wake mask=0x%02X\n", ws);
+  // Boot only when the USER asked for it: power/reset button, a scheduled timer,
+  // or a software reboot. Charge quietly when we came up on external power alone.
+  // NOTE: on the StickS3 a cable insertion sets VIN *and* EXT_WAKE (mask 0x22),
+  // so EXT_WAKE must NOT count as a boot request — the power button is PWRBTN.
+  bool userWants  = ws & (M5PM1_WAKE_SRC_PWRBTN | M5PM1_WAKE_SRC_RSTBTN |
+                          M5PM1_WAKE_SRC_TIM    | M5PM1_WAKE_SRC_CMD_RST);
+  bool onExtPower = ws & (M5PM1_WAKE_SRC_VIN    | M5PM1_WAKE_SRC_5VINOUT);
+  bool cableOnly  = onExtPower && !userWants;
+  if(cableOnly){
+    LOGF("chargeGuard: USB wake -> shutting down to charge quietly (press PWR to boot)\n");
+#if STICKPET_LOG
+    Serial.flush(); delay(30);
+#endif
+    pm1.shutdown();
+    delay(1500);                    // if the rail didn't latch off, fall through and boot
+    LOGF("chargeGuard: still alive after shutdown -> booting anyway\n");
+  }
+  Wire.end();                       // release the bus so M5.begin() can set it up
+}
+#endif
+
 void setup(){
+#if CHARGE_QUIETLY
+  chargeQuietlyGuard();
+#endif
   auto cfg=M5.config(); cfg.internal_spk=true; cfg.internal_mic=false; M5.begin(cfg);
   M5.Display.setRotation(1); M5.Display.setBrightness(90);
   M5.Speaker.end();
