@@ -45,9 +45,7 @@ No wiring, no add-ons. Uses the built-in 1.14" display, speaker, and two buttons
 | Side button — hold  | **Mute / unmute** |
 | Either button, held on the gravestone | Hatch a new egg |
 
-Adventure mode is a mode you choose, not something tied to the USB cable — hold
-the front button to send the pet off and hold again to bring it home for its
-loot report.
+Adventure mode is an Idle RPG for the pet.  It will attack mobs every few seconds until it gets to a boss, if it makes it past the boss, it will get to continue.  Make sure your pet is healthy before adventuring, sick pets don't survive adventures!
 
 ---
 
