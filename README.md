@@ -4,8 +4,8 @@ A virtual pet **and** idle RPG for the [M5Stack StickS3](https://docs.m5stack.co
 Care for PIXEL and it grows from an egg into an adult; send it off adventuring
 and it fights blobs on its own — while a well-fed, happy pet fights harder.
 
-Runs on the StickS3's built-in screen and speaker. **M5Unified is the only
-dependency.** Everything is drawn from primitives to an off-screen canvas, so it
+Runs on the StickS3's built-in screen and speaker. **M5Unified and M5PM1 are the only
+dependencies.** Everything is drawn from primitives to an off-screen canvas, so it
 stays smooth and flicker-free, and the whole state persists to flash — your pet
 survives a reboot.
 
@@ -45,9 +45,7 @@ No wiring, no add-ons. Uses the built-in 1.14" display, speaker, and two buttons
 | Side button — hold  | **Mute / unmute** |
 | Either button, held on the gravestone | Hatch a new egg |
 
-Adventure mode is a mode you choose, not something tied to the USB cable — hold
-the front button to send the pet off and hold again to bring it home for its
-loot report.
+Adventure mode is an Idle RPG for the pet.  It will attack mobs every few seconds until it gets to a boss, if it makes it past the boss, it will get to continue.  Make sure your pet is healthy before adventuring, sick pets don't survive adventures!
 
 ---
 
@@ -62,7 +60,7 @@ loot report.
 ### Option B — Arduino IDE (from source)
 
 1. Install the **ESP32 boards** package (Espressif) via Boards Manager
-2. Install the **M5Unified** library via Library Manager
+2. Install the **M5Unified** and **M5PM1** library via Library Manager
 3. Open `stickpet/stickpet.ino`
 4. Set these under **Tools**:
 
